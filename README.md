@@ -1,3 +1,6 @@
+![polSim Banner](polsim.png)
+
+
 # polSim: Population Simulation Platform for Social Science Research
 
 ## Overview
