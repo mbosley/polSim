@@ -17,8 +17,8 @@
 - **Interface Options**: Includes a command line interface with plans for a future graphical user interface (GUI).
 
 ## Timeline
-- [ ] Generate roadmap
-- [ ] Decide on agent architecture options
+- [x] Generate roadmap
+- [x] Decide on agent architecture options
 - [ ] End-to-end proof of concept with OpenAI models
 - [ ] Build model-agnostic simulation infrastructure
 - [ ] Write a survey experiment script
@@ -65,35 +65,48 @@ Synthetic populations are made up of LLM agents, with the profile of each agent 
 
 ### Example Agent
 
-Below is an example YAML configuration for an individual agent in a synthetic population for `polSim`. This configuration file would represent one agent's profile, including their traits, information, and decision rule.
+All agents are made up a set of fundamental building blocks: (1) /core traits/ central to the agent's identity; (2) rules of behavior that the agent must ascribe to; (3) /memory/ of previous events; (4) a description of the /task/ at hand that the agent must perform; (5) the /thought/ that the agent makes when reasoning about which option to choose; (6) the /choice/ that the agent makes about the task that they are provided, given all preceding blocks; and (7) the /observation/ of the outcome of making the previous choice.
 
-```yaml
-# Agent Configuration
-agent_id: 0001
+All agent actions and outcomes occur through one of the following function calls: `assign_task`, `receive_information`, `generate_thought`, `execute_task`, `observe_outcome`,  `update_memory`.
+In `assign_task`, an agent is provided a task by either by the simulation or by another agent.
+Similarly, in `receive_information`, an agent is provided information by either the simulation or another agent.
+In `generate_thought`, a call to a LLM is made to generate a thought about the action at hand using its traits, rules, memory, task description, and thought.
+In `execute_task`, a call to an LLM is made using the same blocks as the previous step plus thought, and the agent decides how to act.
+In `observe_outcome`, an agent observes the outcome of the task, and the consequences of the action.
+in `update_memory`, an agent updates its memory of the simulation, where each memory is a tuple of the form `(task, thought, choice, outcome)`.
 
-# Traits of the agent
-traits:
-  demographic:
-    age: 29
-    gender: "female"
-    race: "black"
-    country: "Canada"
-    education_level: "bachelors"
-    current_occupation: "data_scientist"
-    previous_occupations: ["research_assistant", "analyst"]
-    income: 55000
-    marital_status: "single"
-    political_affiliation: "independent"
-
-# Information that the agent possesses
-information:
-
-# Decision rule for the agent to follow during simulations
-decision_rule:
-  voting_behavior:
-    propensity_to_vote: 0.85
-    issues_considered: ["economy", "education", "healthcare"]
+We can think about instantiating an agent as a class in python.
+```python
+class Agent:
+    def __init__(self, traits, rules, memory, task, thought, choice):
+        self.traits = traits
+        self.rules = rules
+        self.memory = memory
+        self.task = task
+        self.thought = thought
+        self.choice = choice
+      
+    def assign_task(self, task):
+        self.task = task
+        
+    def receive_information(self, information):
+        self.information = information
+        
+    def generate_thought(self):
+        self.thought = LLM.generate_thought(self.traits, self.rules, self.memory, self.task, self.thought)
+        
+    def execute_task(self):
+        self.choice = LLM.execute_task(self.traits, self.rules, self.memory, self.task, self.thought, self.choice)
+        
+    def observe_outcome(self, outcome):
+        self.outcome = outcome
+        
+    def update_memory(self):
+        self.memory.append((self.task, self.thought, self.choice, self.outcome))
 ```
+
+
+In the simplest simulations, where one or more agents are asked to give a response to e.g. a survey, each agent will consider its core traits, the rules of behavior, the description of the task, and generate a thought about how they should respond to the task. Then, using the thought, the agent will decide how to act. Because there is no history of interaction, the memory block will be empty in this scenario. 
 
 ### Defining Attributes
 Edit the `config.yaml` to specify the attributes of the population you want to simulate. The configuration structure is as follows:
